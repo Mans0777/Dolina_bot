@@ -53,10 +53,9 @@ def add_column_if_not_exists(column_name, column_type):
     except psycopg2.errors.DuplicateColumn:
         conn.rollback()
 
-add_column_if_not_exists("group_id", "TEXT")
-add_column_if_not_exists("description", "TEXT")
-add_column_if_not_exists("registration_message_id", "INTEGER")
-
+cursor.execute("ALTER TABLE problems ADD COLUMN IF NOT EXISTS group_id TEXT")
+cursor.execute("ALTER TABLE problems ADD COLUMN IF NOT EXISTS description TEXT")
+cursor.execute("ALTER TABLE problems ADD COLUMN IF NOT EXISTS registration_message_id INTEGER")
 conn.commit()
 
 # Настройка ИИ
@@ -1058,6 +1057,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
