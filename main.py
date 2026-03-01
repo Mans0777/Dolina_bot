@@ -6,7 +6,7 @@ import os
 import asyncio
 import re
 from datetime import datetime, time, timedelta
-import sqlite3
+import psycopg2
 # --- БИБЛИОТЕКИ ---
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.types import BotCommand, InlineKeyboardMarkup, InlineKeyboardButton
@@ -22,9 +22,10 @@ TOKEN = os.getenv("TOKEN")
 ADMIN_IDS = [878423396, 276477340]
 GEMINI_KEY = os.getenv("GEMINI_KEY")
 GROUP_CHAT_ID = -1001174920470
-conn = sqlite3.connect("kpi.db")
-cursor = conn.cursor()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
+conn = psycopg2.connect(DATABASE_URL)
+cursor = conn.cursor()
 # Создаем базовые таблицы
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS problems (
@@ -38,7 +39,7 @@ CREATE TABLE IF NOT EXISTS problems (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS late_openings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     store_code TEXT,
     date TEXT
 )
@@ -48,9 +49,9 @@ CREATE TABLE IF NOT EXISTS late_openings (
 def add_column_if_not_exists(column_name, column_type):
     try:
         cursor.execute(f"ALTER TABLE problems ADD COLUMN {column_name} {column_type}")
-    except sqlite3.OperationalError:
-        # Колонка уже существует
-        pass
+        conn.commit()
+    except psycopg2.errors.DuplicateColumn:
+        conn.rollback()
 
 add_column_if_not_exists("group_id", "TEXT")
 add_column_if_not_exists("description", "TEXT")
@@ -1064,3 +1065,4 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
