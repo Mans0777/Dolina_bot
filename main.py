@@ -1,7 +1,7 @@
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
-
+import pytz
 import os
 import asyncio
 import re
@@ -14,7 +14,12 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from openpyxl import Workbook
 
 import google.generativeai as genai
+# Настройка часового пояса
+TASHKENT_TZ = pytz.timezone('Asia/Tashkent')
 
+def get_now():
+    """Возвращает текущее время в часовом поясе Ташкента"""
+    return datetime.now(TASHKENT_TZ)
 # ==========================================================
 # 1. НАСТРОЙКИ И КОНФИГУРАЦИЯ
 # ==========================================================
@@ -129,7 +134,8 @@ awaiting_reason = {}
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
-scheduler = AsyncIOScheduler()
+# Теперь все задачи в cron будут работать по времени Ташкента
+scheduler = AsyncIOScheduler(timezone=TASHKENT_TZ)
 
 # ==========================================================
 # 2. ИИ ФУНКЦИИ (ИСПРАВЛЕНО ДЛЯ НОВЫХ ВЕРСИЙ GEMINI)
@@ -170,7 +176,7 @@ async def check_is_complaint(text):
 # ==========================================================
 
 async def send_actual_report(chat_id):
-    now = datetime.now()
+    now = get_now()
     today = now.date()
     # Фикс Лого: утром смотрим вчерашний вечер
     check_date_logo = today if now.hour >= 17 else (today - timedelta(days=1))
@@ -280,7 +286,7 @@ async def master_handler(message: types.Message):
             return
 
     tid = message.message_thread_id
-    now = datetime.now()
+    now = get_now()
     content = message.text or message.caption 
 
 # 2. СПЕЦИАЛЬНАЯ ЛОГИКА: ТЕМА "ПРОБЛЕМЫ"
@@ -493,7 +499,7 @@ async def export_weekly_excel():
     await bot.send_document(GROUP_CHAT_ID, types.FSInputFile(file_name))
 
 async def send_weekly_rating():
-    today = datetime.now()
+    today = get_now()
     start_of_week = today - timedelta(days=today.weekday())
     last_monday = start_of_week - timedelta(days=7)
     last_sunday = start_of_week - timedelta(seconds=1)
@@ -563,7 +569,7 @@ async def send_weekly_rating():
 
 def archive_old_problems():
     """Удаляет из базы данных проблемы старше 30 дней"""
-    limit_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    limit_date = (get_now() - timedelta(days=30)).strftime("%Y-%m-%d")
     try:
         cursor.execute("DELETE FROM problems WHERE date(created_at) < %s", (limit_date,))
         conn.commit()
@@ -573,7 +579,7 @@ def archive_old_problems():
 
 async def send_daily_rating(chat_id):
     """Генерирует рейтинг магазинов за вчера на основе SQLite"""
-    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    yesterday = (get_now() - timedelta(days=1)).strftime("%Y-%m-%d")
     cursor.execute("""
         SELECT store_code, COUNT(*), SUM(fixed)
         FROM problems
@@ -602,7 +608,7 @@ async def send_daily_rating(chat_id):
 async def send_problems_report(chat_id, only_yesterday=False):
     """Детальный отчет по замечаниям с группировкой альбомов (LIVE и вчера)"""
 
-    yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    yesterday_str = (get_now() - timedelta(days=1)).strftime("%Y-%m-%d")
     store_issues = {code: [] for code in STORES}
     processed_groups = set()
 
@@ -724,7 +730,7 @@ async def send_problems_report(chat_id, only_yesterday=False):
 
 async def job_daily_problems_report():
     """Ежедневная утренняя рассылка (Админам общая, Менеджерам персональная)"""
-    yesterday_dt = datetime.now() - timedelta(days=1)
+    yesterday_dt = get_now() - timedelta(days=1)
     yesterday_str = yesterday_dt.strftime("%Y-%m-%d")
 
     # 1. Админам (используем уже обновленную функцию с группировкой)
@@ -850,13 +856,13 @@ async def job_8am_check_kj():
             except: pass
 
 async def job_wednesday_2100_cleaning():
-    if datetime.now().weekday() == 2:
+    if get_now().weekday() == 2:
         late = [c for c in STORES if not db[c].get('Уборка')]
         if late: await bot.send_message(GROUP_CHAT_ID, f"🧹 **УБОРКА**: Где фото%s {', '.join(late)}", message_thread_id=TOPICS['Уборка'])
 
 async def job_wednesday_night_aleya_check():
     late = []
-    yesterday = datetime.now() - timedelta(days=1)
+    yesterday = get_now() - timedelta(days=1)
     for c in STORES:
         was_sent = any(dt.date() == yesterday.date() and 21 <= dt.hour <= 23 for dt in db[c].get('Алея и Промо', []))
         if not was_sent: late.append(c)
@@ -865,7 +871,7 @@ async def job_wednesday_night_aleya_check():
 
 async def job_sunday_1800_planogram():
     """Проверка в воскресенье 18:00: ищем фразу и уведомляем админов с кнопкой"""
-    if datetime.now().weekday() == 6:  # 6 — воскресенье
+    if get_now().weekday() == 6:  # 6 — воскресенье
         late = []
         for c in STORES:
             data = db[c].get('Планограмма', [])
@@ -907,7 +913,7 @@ async def job_sunday_1800_planogram():
 async def job_check_logo_2100():
     """Проверка Лого в 21:00 (проверяем тему 'Лого')"""
     late = []
-    today = datetime.now().date()
+    today = get_now().date()
 
     for c in STORES:
         # Берем данные из НОВОЙ темы
@@ -982,7 +988,7 @@ async def on_reaction_changed(reaction: types.MessageReactionUpdated):
     
     if is_fixed:
         msg_id = str(reaction.message_id)
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now_str = get_now().strftime("%Y-%m-%d %H:%M:%S")
         
         # 2. Обновляем статус в базе данных SQLite
         cursor.execute("""
@@ -1057,6 +1063,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
