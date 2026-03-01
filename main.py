@@ -699,7 +699,7 @@ async def send_problems_report(chat_id, only_yesterday=False):
 
             # Если НЕ исправлено — добавляем кнопку к конкретному сообщению
             if not issue["fixed"]:
-                message_link = f"tg://privatepost%schannel={clean_chat_id}&post={issue['registration_message_id']}"
+                message_link = f"tg://privatepost?channel={clean_chat_id}&post={issue['registration_message_id']}"
 
                 keyboard = InlineKeyboardMarkup(
                     inline_keyboard=[
@@ -1058,5 +1058,6 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
