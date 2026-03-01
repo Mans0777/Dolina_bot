@@ -20,7 +20,7 @@ import google.generativeai as genai
 # ==========================================================
 TOKEN = os.getenv("TOKEN")
 ADMIN_IDS = [878423396, 276477340]
-TOKEN = os.getenv("TOKEN")
+GEMINI_KEY = os.getenv("GEMINI_KEY")
 GROUP_CHAT_ID = -1001174920470
 conn = sqlite3.connect("kpi.db")
 cursor = conn.cursor()
@@ -1062,4 +1062,5 @@ if __name__ == '__main__':
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
+
         pass
