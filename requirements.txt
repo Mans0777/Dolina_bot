@@ -1,4 +1,6 @@
 aiogram
 apscheduler
 openpyxl
+
 google-generativeai
+psycopg2-binary
