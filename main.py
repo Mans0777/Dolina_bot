@@ -293,12 +293,12 @@ async def master_handler(message: types.Message):
             parent = message.reply_to_message
             problem_id = str(parent.media_group_id or parent.message_id)
 
-            cursor.execute("SELECT store_code FROM problems WHERE id = ? AND fixed = 0", (problem_id,))
+            cursor.execute("SELECT store_code FROM problems WHERE id = %s AND fixed = 0", (problem_id,))
             row = cursor.fetchone()
 
             if row:
                 fixed_time = now.strftime("%Y-%m-%d %H:%M:%S")
-                cursor.execute("UPDATE problems SET fixed = 1, fixed_at = ? WHERE id = ?", (fixed_time, problem_id))
+                cursor.execute("UPDATE problems SET fixed = 1, fixed_at = %s WHERE id = %s", (fixed_time, problem_id))
                 conn.commit()
                 store_code = row[0]
                 if store_code in store_kpi:
@@ -345,20 +345,13 @@ async def master_handler(message: types.Message):
                 registration_message_id = sent_msg.message_id
 
                 # 2️⃣ Вставляем запись в БД уже с registration_message_id
-                cursor.execute("SELECT 1 FROM problems WHERE id = ?", (problem_id,))
+                cursor.execute("SELECT 1 FROM problems WHERE id = %s", (problem_id,))
                 if cursor.fetchone() is None:
                     cursor.execute("""
                         INSERT INTO problems 
                         (id, store_code, created_at, fixed, group_id, description, registration_message_id)
-                        VALUES (?, ?, ?, 0, ?, ?, ?)
-                    """, (
-                        problem_id,
-                        selected_store,
-                        now.strftime("%Y-%m-%d %H:%M:%S"),
-                        group_id,
-                        description,
-                        registration_message_id
-                    ))
+                        VALUES (%s, %s, %s, 0, %s, %s, %s)
+                    """, (problem_id, selected_store, now.strftime("%Y-%m-%d %H:%M:%S"), group_id, description, registration_message_id))
                     conn.commit()
 
                 # 3️⃣ Обновляем статистику
@@ -405,7 +398,7 @@ async def master_handler(message: types.Message):
                     store_kpi[code]["late_openings"] += 1
                     cursor.execute("""
                     INSERT INTO late_openings (store_code, date)
-                    VALUES (?, ?)
+                    VALUES (%s, %s)
                     """, (code, now.strftime("%Y-%m-%d")))
                     conn.commit()
                     await message.reply(f"⚠️ {code}: Вы открылись в {now.strftime('%H:%M')} (Дедлайн: {deadline_str}).\n❗️ Напишите причину опоздания в ответном сообщении.")
@@ -515,7 +508,7 @@ async def send_weekly_rating():
     SELECT store_code, COUNT(*),
            SUM(fixed)
     FROM problems
-    WHERE created_at BETWEEN ? AND ?
+    WHERE created_at BETWEEN %s AND %s
     GROUP BY store_code
     """, (start, end))
 
@@ -532,7 +525,7 @@ async def send_weekly_rating():
     cursor.execute("""
     SELECT store_code, COUNT(*)
     FROM late_openings
-    WHERE date BETWEEN ? AND ?
+    WHERE date BETWEEN %s AND %s
     GROUP BY store_code
     """, (last_monday.strftime("%Y-%m-%d"),
           last_sunday.strftime("%Y-%m-%d")))
@@ -573,7 +566,7 @@ def archive_old_problems():
     """Удаляет из базы данных проблемы старше 30 дней"""
     limit_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
     try:
-        cursor.execute("DELETE FROM problems WHERE date(created_at) < ?", (limit_date,))
+        cursor.execute("DELETE FROM problems WHERE date(created_at) < %s", (limit_date,))
         conn.commit()
         print(f"🧹 База очищена: старые записи до {limit_date} удалены.")
     except Exception as e:
@@ -585,7 +578,7 @@ async def send_daily_rating(chat_id):
     cursor.execute("""
         SELECT store_code, COUNT(*), SUM(fixed)
         FROM problems
-        WHERE date(created_at) = ?
+        WHERE date(created_at) = %s
         GROUP BY store_code
     """, (yesterday,))
     
@@ -619,7 +612,7 @@ async def send_problems_report(chat_id, only_yesterday=False):
         cursor.execute("""
             SELECT id, store_code, created_at, fixed, group_id, description, registration_message_id
             FROM problems
-            WHERE date(created_at) = ?
+            WHERE date(created_at) = %s
         """, (yesterday_str,))
     else:
         cursor.execute("""
@@ -706,7 +699,7 @@ async def send_problems_report(chat_id, only_yesterday=False):
 
             # Если НЕ исправлено — добавляем кнопку к конкретному сообщению
             if not issue["fixed"]:
-                message_link = f"tg://privatepost?channel={clean_chat_id}&post={issue['registration_message_id']}"
+                message_link = f"tg://privatepost%schannel={clean_chat_id}&post={issue['registration_message_id']}"
 
                 keyboard = InlineKeyboardMarkup(
                     inline_keyboard=[
@@ -748,7 +741,7 @@ async def job_daily_problems_report():
         cursor.execute("""
             SELECT fixed, created_at, group_id 
             FROM problems 
-            WHERE store_code = ? AND date(created_at) = ?
+            WHERE store_code = %s AND date(created_at) = %s
         """, (store_code, yesterday_str))
         
         rows = cursor.fetchall()
@@ -860,7 +853,7 @@ async def job_8am_check_kj():
 async def job_wednesday_2100_cleaning():
     if datetime.now().weekday() == 2:
         late = [c for c in STORES if not db[c].get('Уборка')]
-        if late: await bot.send_message(GROUP_CHAT_ID, f"🧹 **УБОРКА**: Где фото? {', '.join(late)}", message_thread_id=TOPICS['Уборка'])
+        if late: await bot.send_message(GROUP_CHAT_ID, f"🧹 **УБОРКА**: Где фото%s {', '.join(late)}", message_thread_id=TOPICS['Уборка'])
 
 async def job_wednesday_night_aleya_check():
     late = []
@@ -995,8 +988,8 @@ async def on_reaction_changed(reaction: types.MessageReactionUpdated):
         # 2. Обновляем статус в базе данных SQLite
         cursor.execute("""
             UPDATE problems 
-            SET fixed = 1, fixed_at = ? 
-            WHERE id = ? AND fixed = 0
+            SET fixed = 1, fixed_at = %s 
+            WHERE id = %s AND fixed = 0
         """, (now_str, msg_id))
         
         if cursor.rowcount > 0:
@@ -1004,13 +997,13 @@ async def on_reaction_changed(reaction: types.MessageReactionUpdated):
             print(f"✅ Проблема {msg_id} отмечена как исправленная через реакцию.")
         
         # 3. Также проверяем по group_id (если это был альбом)
-        cursor.execute("SELECT group_id FROM problems WHERE id = ?", (msg_id,))
+        cursor.execute("SELECT group_id FROM problems WHERE id = %s", (msg_id,))
         row = cursor.fetchone()
         if row and row[0]:
             cursor.execute("""
                 UPDATE problems 
-                SET fixed = 1, fixed_at = ? 
-                WHERE group_id = ? AND fixed = 0
+                SET fixed = 1, fixed_at = %s 
+                WHERE group_id = %s AND fixed = 0
             """, (now_str, row[0]))
             conn.commit()
 
@@ -1065,4 +1058,5 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
