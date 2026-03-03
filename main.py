@@ -394,7 +394,7 @@ async def master_handler(message: types.Message):
                 db_times[code]["open"] = now.strftime("%H:%M")
                 
                 # Пользуемся глобальным LATE_STORES
-                deadline_str = "08:30" if code in LATE_STORES else "06:45"
+                deadline_str = "07:30" if code in LATE_STORES else "06:45"
                 deadline_time = datetime.strptime(deadline_str, "%H:%M").time()
 
                 # Проверка на опоздание
@@ -812,7 +812,7 @@ async def job_check_standard_opening():
         await bot.send_message(GROUP_CHAT_ID, f"🚨 **06:50:** {stores_str} не открылись!", message_thread_id=TOPICS['Открытие и Закрытие'])
 
 async def job_check_late_stores_0835():
-    """Единая проверка для 177, 164, 054 ровно в 08:35 (Сразу все утренние задачи)"""
+    """Единая проверка для 177, 164, 054 ровно в 07:35 (Сразу все утренние задачи)"""
     clean_chat_id = str(GROUP_CHAT_ID).replace("-100", "")
     
     # 1. Открытие
@@ -820,28 +820,28 @@ async def job_check_late_stores_0835():
     if late_open:
         stores_str = ", ".join(late_open)
         for c in late_open: awaiting_reason[c] = True
-        await bot.send_message(GROUP_CHAT_ID, f"🚨 **08:35:** {stores_str} не открылись!", message_thread_id=TOPICS['Открытие и Закрытие'])
+        await bot.send_message(GROUP_CHAT_ID, f"🚨 **07:35:** {stores_str} не открылись!", message_thread_id=TOPICS['Открытие и Закрытие'])
         kb_open = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="✉️ Написать им", url=f"https://t.me/c/{clean_chat_id}/{TOPICS['Открытие и Закрытие']}")]])
         for admin_id in ADMIN_IDS:
-            try: await bot.send_message(admin_id, f"🚨 **ОПОЗДАНИЕ 08:30 (177, 164, 054):**\n📍 {stores_str} не открылись!", reply_markup=kb_open)
+            try: await bot.send_message(admin_id, f"🚨 **ОПОЗДАНИЕ 07:35 (177, 164, 054):**\n📍 {stores_str} не открылись!", reply_markup=kb_open)
             except: pass
 
     # 2. ХО
     late_xo = [c for c in LATE_STORES if not db[c].get('ХО')]
-    if late_xo: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **ХО (08:30)**: Нет фото от {', '.join(late_xo)}", message_thread_id=TOPICS['ХО'])
+    if late_xo: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **ХО (07:30)**: Нет фото от {', '.join(late_xo)}", message_thread_id=TOPICS['ХО'])
 
     # 3. КЖ
     late_kj = [c for c in LATE_STORES if not db[c].get('Книга Жалоб')]
     if late_kj:
         stores_str = ", ".join(late_kj)
-        await bot.send_message(GROUP_CHAT_ID, f"⚠️ **Книга Жалоб (08:30)**: Нет отчета от {stores_str}", message_thread_id=TOPICS['Книга Жалоб'])
+        await bot.send_message(GROUP_CHAT_ID, f"⚠️ **Книга Жалоб (07:30)**: Нет отчета от {stores_str}", message_thread_id=TOPICS['Книга Жалоб'])
 
     # 4. Алея и Олов
     late_aleya = [c for c in LATE_STORES if not db[c].get('Алея и Промо')]
-    if late_aleya: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **АЛЕЯ (08:30)**: Нет фото от {', '.join(late_aleya)}", message_thread_id=TOPICS['Алея и Промо'])
+    if late_aleya: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **АЛЕЯ (07:30)**: Нет фото от {', '.join(late_aleya)}", message_thread_id=TOPICS['Алея и Промо'])
 
     late_olov = [c for c in LATE_STORES if not db[c].get('Олов Таклиф')]
-    if late_olov: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **Олов Таклиф (08:30)**: Нет фото от {', '.join(late_olov)}", message_thread_id=TOPICS['Олов Таклиф'])
+    if late_olov: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **Олов Таклиф (07:30)**: Нет фото от {', '.join(late_olov)}", message_thread_id=TOPICS['Олов Таклиф'])
 
 async def job_8am_check_kj():
     """Проверка КЖ (только Обычные магазины)"""
@@ -1040,7 +1040,7 @@ async def main():
     scheduler.add_job(job_9am_check_aleya_olov, 'cron', hour=9, minute=0)
 
     # 8:35 — Проверка 177, 164, 054 (ВСЕ ЗАДАЧИ СРАЗУ)
-    scheduler.add_job(job_check_late_stores_0835, 'cron', hour=8, minute=35)
+    scheduler.add_job(job_check_late_stores_0835, 'cron', hour=7, minute=35)
 
     # 8:40 — ОБЩИЙ ОТЧЕТ АДМИНАМ (Когда все данные уже есть)
     scheduler.add_job(job_send_admin_report, 'cron', hour=8, minute=40)
@@ -1063,6 +1063,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
