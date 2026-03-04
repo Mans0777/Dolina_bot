@@ -560,6 +560,34 @@ async def master_handler(message: types.Message):
                 # Сохраняем время (И фото, и текст считаются отчетом)
                 db[code][t_name].append(now)
                 break
+
+async def export_weekly_excel():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Weekly KPI"
+
+    ws.append(["Store", "Total Problems", "Fixed", "Percent"])
+
+    cursor.execute("""
+    SELECT store_code, COUNT(*), SUM(fixed)
+    FROM problems
+    GROUP BY store_code
+    """)
+
+    rows = cursor.fetchall()
+
+    for row in rows:
+        code = row[0]
+        total = row[1]
+        fixed = row[2] or 0
+        percent = round((fixed / total) * 100) if total else 0
+
+        ws.append([STORES[code], total, fixed, percent])
+
+    file_name = "weekly_kpi.xlsx"
+    wb.save(file_name)
+
+    await bot.send_document(GROUP_CHAT_ID, types.FSInputFile(file_name))
                 
 async def send_weekly_rating():
     today = get_now()
@@ -1126,6 +1154,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
