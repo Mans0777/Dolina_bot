@@ -26,7 +26,22 @@ TOKEN = os.getenv("TOKEN")
 ADMIN_IDS = [878423396, 276477340]
 GEMINI_KEY = os.getenv("GEMINI_KEY")
 GROUP_CHAT_ID = -1001174920470
+# Находим это место в коде:
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Заменяем создание подключения на более надежное:
+try:
+    # Добавляем параметр sslmode для работы с облачными БД
+    if DATABASE_URL and "sslmode" not in DATABASE_URL:
+        # Если в ссылке нет параметров, добавляем sslmode
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    else:
+        conn = psycopg2.connect(DATABASE_URL)
+    
+    cursor = conn.cursor()
+    print("✅ Успешное подключение к базе данных Railway")
+except Exception as e:
+    print(f"❌ Ошибка подключения к БД: {e}")
 
 conn = psycopg2.connect(DATABASE_URL)
 cursor = conn.cursor()
@@ -1083,7 +1098,6 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
-
 
 
 
