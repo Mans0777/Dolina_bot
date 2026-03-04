@@ -370,169 +370,197 @@ async def get_store_code_safe(message: types.Message):
 @dp.message()
 async def master_handler(message: types.Message):
     global awaiting_reason
-
-    now = get_now()
-    tid = message.message_thread_id or 0
-    content = (message.text or message.caption or "").strip()
-    content_lower = content.lower()
-    user = message.from_user
-    code = get_store_code(user)
-
-    # ===== DEBUG =====
-    print(
-        "DEBUG:",
-        user.id,
-        user.username,
-        code,
-        tid,
-        content
-    )
-
-    # ===== АДМИН-КОМАНДЫ =====
-    if user.id in ADMIN_IDS:
-        if content == "/report":
+    
+    # 1. КОМАНДЫ (Сначала проверяем команды админа)
+    if message.from_user.id in ADMIN_IDS:
+        if message.text == "/report":
             await send_actual_report(message.chat.id)
             return
-        if content == "/problems":
+        if message.text == "/problems":
             await send_problems_report(message.chat.id)
             return
-        if content == "/rating":
+        if message.text == "/rating":
             await send_daily_rating(message.chat.id)
             return
 
-    if not code:
-        return
+    tid = message.message_thread_id
+    now = datetime.now()
+    content = message.text or message.caption 
 
-    # =====================================================
-    # 1️⃣ OPEN / CLOSE — ВСЕГДА, НЕ ЗАВИСИТ ОТ ТЕМЫ
-    # =====================================================
-    if any(w in content_lower for w in ["откр", "откры"]):
-        db_times[code]["open"] = now.strftime("%H:%M")
+# 2. СПЕЦИАЛЬНАЯ ЛОГИКА: ТЕМА "ПРОБЛЕМЫ"
+    if tid == TOPICS.get('Проблемы'):
+        text_clean = (message.text or message.caption or "").strip().lower()
 
-        deadline_str = "07:30" if code in LATE_STORES else "06:45"
-        deadline_time = datetime.strptime(deadline_str, "%H:%M").time()
-
-        if now.time() > deadline_time:
-            awaiting_reason[code] = True
-            store_kpi[code]["late_openings"] += 1
-
-            cursor.execute(
-                "INSERT INTO late_openings (store_code, date) VALUES (%s, %s)",
-                (code, now.strftime("%Y-%m-%d"))
-            )
-            conn.commit()
-
-            await message.reply(
-                f"⚠️ {code}: открытие в {now.strftime('%H:%M')} (дедлайн {deadline_str}).\n"
-                f"❗ Напишите причину опоздания."
-            )
-
-        return
-
-    if any(w in content_lower for w in ["закр", "закры"]):
-        db_times[code]["close"] = now.strftime("%H:%M")
-        return
-
-    # =====================================================
-    # 2️⃣ ОБЪЯСНИТЕЛЬНАЯ
-    # =====================================================
-    if code in awaiting_reason:
-        for admin_id in ADMIN_IDS:
-            try:
-                await bot.send_message(admin_id, f"📝 ОБЪЯСНИТЕЛЬНАЯ {code}:")
-                await bot.copy_message(admin_id, message.chat.id, message.message_id)
-            except:
-                pass
-
-        await message.reply("✅ Объяснительная передана.")
-        del awaiting_reason[code]
-        return
-
-    # =====================================================
-    # 3️⃣ ПРОБЛЕМЫ
-    # =====================================================
-    if tid == TOPICS.get("Проблемы"):
-        # исправлено (reply)
-        if message.reply_to_message and "исправлено" in content_lower:
+        # --- 1️⃣ ИСПРАВЛЕНИЕ (reply "исправлено") ---
+        if message.reply_to_message and "исправлено" in text_clean:
             parent = message.reply_to_message
             problem_id = str(parent.media_group_id or parent.message_id)
 
-            cursor.execute(
-                "SELECT store_code FROM problems WHERE id=%s AND fixed=0",
-                (problem_id,)
-            )
+            cursor.execute("SELECT store_code FROM problems WHERE id = ? AND fixed = 0", (problem_id,))
             row = cursor.fetchone()
 
             if row:
-                cursor.execute(
-                    "UPDATE problems SET fixed=1, fixed_at=%s WHERE id=%s",
-                    (now.strftime("%Y-%m-%d %H:%M:%S"), problem_id)
-                )
+                fixed_time = now.strftime("%Y-%m-%d %H:%M:%S")
+                cursor.execute("UPDATE problems SET fixed = 1, fixed_at = ? WHERE id = ?", (fixed_time, problem_id))
                 conn.commit()
-                await message.reply("✅ Исправлено")
+                store_code = row[0]
+                if store_code in store_kpi:
+                    store_kpi[store_code]["fixed_problems"] += 1
+                
             return
 
-    # =====================================================
-    # 4️⃣ КНИГА ЖАЛОБ
-    # =====================================================
-    if tid == TOPICS.get("Книга Жалоб"):
-        if "Книга Жалоб" not in db[code]:
+        # --- 2️⃣ ВЫБОР МАГАЗИНА И РЕГИСТРАЦИЯ ---
+        if message.from_user.id in ADMIN_IDS:
+            found_code = None
+            raw_text = (message.text or message.caption or "").strip()
+
+            # Ищем код или название в тексте
+            if raw_text.upper() in STORES:
+                found_code = raw_text.upper()
+            if not found_code:
+                for code_key, variants in STORE_VARIANTS.items():
+                    if any(v.lower() in text_clean for v in variants):
+                        found_code = code_key
+                        break
+
+            # Если нашли магазин — запоминаем выбор
+            if found_code:
+                admin_selection[message.from_user.id] = found_code
+                await message.reply(f"🎯 Магазин: {STORES[found_code]}")
+                # ❗ ВАЖНО: Если фото НЕТ, выходим. Если фото ЕСТЬ — идем дальше сохранять его!
+                if not (message.photo or message.video):
+                    return
+
+            # --- СОХРАНЕНИЕ ПРОБЛЕМЫ ---
+            selected_store = admin_selection.get(message.from_user.id)
+            if selected_store and (message.photo or message.video):
+                group_id = str(message.media_group_id) if message.media_group_id else None
+                problem_id = group_id if group_id else str(message.message_id)
+
+                # В альбомах берем только фото с текстом
+                if group_id and not message.caption:
+                    return
+
+                description = (message.caption or "").strip()
+
+                cursor.execute("SELECT 1 FROM problems WHERE id = ?", (problem_id,))
+                if cursor.fetchone() is None:
+                    cursor.execute("""
+                        INSERT INTO problems (id, store_code, created_at, fixed, group_id, description)
+                        VALUES (?, ?, ?, 0, ?, ?)
+                    """, (problem_id, selected_store, now.strftime("%Y-%m-%d %H:%M:%S"), group_id, description))
+                    conn.commit()
+
+                    if selected_store in store_kpi:
+                        store_kpi[selected_store]["total_problems"] += 1
+
+            elif not selected_store and (message.photo or message.video):
+                await message.reply("⚠️ Сначала напишите название магазина (Шимолий, Азия и т.д.)")
+
+    # 3. ЛОГИКА ПО ТЕМАМ
+    # 3. ОБЫЧНАЯ ЛОГИКА (Теперь проверяет и список менеджеров, и имя профиля)
+    if not message.from_user: return 
+    code = get_store_code(message.from_user) # <--- Теперь передаем объект целиком
+    if not code: return
+    # --- ОТКРЫТИЕ И ЗАКРЫТИЕ ---
+    if tid == TOPICS['Открытие и Закрытие']:
+        if content:
+            # Если ждем объяснительную
+            if code in awaiting_reason:
+                for admin_id in ADMIN_IDS:
+                    try:
+                        await bot.send_message(admin_id, f"📝 **ОБЪЯСНИТЕЛЬНАЯ {code}:**")
+                        await bot.copy_message(admin_id, message.chat.id, message.message_id)
+                    except: pass
+                
+                await message.reply("✅ Объяснительная передана на рассмотрение РМ.")
+                del awaiting_reason[code]
+                return
+
+            # Проверка намерения
+            intent = await ask_gemini_intent(content)
+            
+            # Внутри master_handler, где OPEN
+            if intent == "OPEN":
+                db_times[code]["open"] = now.strftime("%H:%M")
+                
+                # Пользуемся глобальным LATE_STORES
+                deadline_str = "08:30" if code in LATE_STORES else "06:45"
+                deadline_time = datetime.strptime(deadline_str, "%H:%M").time()
+
+                # Проверка на опоздание
+                if now.time() > deadline_time:
+                    awaiting_reason[code] = True
+                    store_kpi[code]["late_openings"] += 1
+                    cursor.execute("""
+                    INSERT INTO late_openings (store_code, date)
+                    VALUES (?, ?)
+                    """, (code, now.strftime("%Y-%m-%d")))
+                    conn.commit()
+                    await message.reply(f"⚠️ {code}: Вы открылись в {now.strftime('%H:%M')} (Дедлайн: {deadline_str}).\n❗️ Напишите причину опоздания в ответном сообщении.")
+                    
+                    for admin_id in ADMIN_IDS:
+                        try:
+                            await bot.send_message(admin_id, f"🚨 **ОПОЗДАНИЕ {code}:**\nМагазин открылся в {now.strftime('%H:%M')} (Поздно!)")
+                        except: pass
+            elif intent == "CLOSE":
+                db_times[code]["close"] = now.strftime("%H:%M")
+
+# --- КНИГА ЖАЛОБ (ОБНОВЛЕНО) ---
+    elif tid == TOPICS['Книга Жалоб']:
+        if "Книга Жалоб" not in db[code]: 
             db[code]["Книга Жалоб"] = []
 
-        is_complaint = await check_is_complaint(content)
-        db[code]["Книга Жалоб"].append({
-            "time": now,
-            "type": "NEW" if is_complaint else "MORNING"
-        })
-        return
+        if content:
+            is_complaint = await check_is_complaint(content)
+            if is_complaint:
+                # Сохраняем как новую жалобу
+                db[code]["Книга Жалоб"].append({"time": now, "type": "NEW"})
+                for admin_id in ADMIN_IDS:
+                    try:
+                        await bot.send_message(admin_id, f"🔔 **НОВАЯ ЗАПИСЬ В КЖ ({code}):**")
+                        await bot.copy_message(admin_id, message.chat.id, message.message_id)
+                    except: pass
+            else:
+                # Сохраняем как отчет об отсутствии (Утро)
+                db[code]["Книга Жалоб"].append({"time": now, "type": "MORNING"})
 
-    # =====================================================
-    # 5️⃣ ХО
-    # =====================================================
-    if tid == TOPICS.get("ХО"):
-        if "ХО" not in db[code]:
-            db[code]["ХО"] = []
-        db[code]["ХО"].append(now)
-        return
+    # --- ПЛАНОГРАММА (ОБНОВЛЕНО: Суббота/Воскресенье) ---
+    elif tid == TOPICS['Планограмма']:
+        if "Планограмма" not in db[code]: 
+            db[code]["Планограмма"] = []
+            
+        is_sunday = now.weekday() == 6  # 6 — это воскресенье
+        content_lower = content.lower() if content else ""
 
-    # =====================================================
-    # 6️⃣ ДРУГИЕ ТЕМЫ
-    # =====================================================
-    for t_name, t_id in TOPICS.items():
-        if tid == t_id:
-            if t_name not in db[code]:
-                db[code][t_name] = []
-            db[code][t_name].append(now)
-            return
+        if is_sunday:
+            # В ВОСКРЕСЕНЬЕ: ждем строго "все планограммы выполнены"
+            if "все планограммы выполнены" in content_lower:
+                db[code]["Планограмма"].append({"time": now, "type": "FINAL_DONE"})
+                await message.reply("✅ Принято! Финальный отчет за неделю зафиксирован.")
+            elif message.photo:
+                # Фото в воскресенье просто сохраняем в базу, но это не "финал"
+                db[code]["Планограмма"].append({"time": now, "type": "PHOTO"})
+        else:
+            # В ОСТАЛЬНЫЕ ДНИ: фото или текст со словом "выполн"
+            if message.photo or "выполн" in content_lower:
+                db[code]["Планограмма"].append({"time": now, "type": "DAILY"})
 
-async def export_weekly_excel():
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Weekly KPI"
-
-    ws.append(["Store", "Total Problems", "Fixed", "Percent"])
-
-    cursor.execute("""
-    SELECT store_code, COUNT(*), SUM(fixed)
-    FROM problems
-    GROUP BY store_code
-    """)
-
-    rows = cursor.fetchall()
-
-    for row in rows:
-        code = row[0]
-        total = row[1]
-        fixed = row[2] or 0
-        percent = round((fixed / total) * 100) if total else 0
-
-        ws.append([STORES[code], total, fixed, percent])
-
-    file_name = "weekly_kpi.xlsx"
-    wb.save(file_name)
-
-    await bot.send_document(GROUP_CHAT_ID, types.FSInputFile(file_name))
-
+    # Найти в master_handler блок для ХО и заменить на это:
+    elif tid == TOPICS['ХО']:
+        if "ХО" not in db[code]: db[code]["ХО"] = []
+        db[code]["ХО"].append(now) # Фиксируем время отправки
+    else:
+        # Проверяем остальные темы (Алея, Олов, Уборка)
+        for t_name, t_id in TOPICS.items():
+            if tid == t_id:
+                # Если ID темы совпал с одной из наших тем
+                if t_name not in db[code]: db[code][t_name] = []
+                
+                # Сохраняем время (И фото, и текст считаются отчетом)
+                db[code][t_name].append(now)
+                break
+                
 async def send_weekly_rating():
     today = get_now()
     start_of_week = today - timedelta(days=today.weekday())
@@ -1098,6 +1126,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
