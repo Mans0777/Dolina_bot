@@ -89,16 +89,55 @@ LATE_STORES = ["177", "164", "054"]
 
 # Список менеджеров (username -> код магазина)
 MANAGERS = {
-    "OsiyoAyub": "109",        # Турт куча
-    "VahobjonovAbdulaziz": "054", # Навруз
-    "Samijonov_Azizbek": "148",   # Гранд
-    "Kamolov_K164": "164",        # Узбеким
-    "Qurbonov_Qodiriy": "191",       # Чорток
-    "AbdurashidovDavron": "071",  # Наманган
-    "DilobarParmonova": "023",    # Андижан
-    "Ibrohimjon0526": "177",      # Азия
-    "Abdumutal_Xudoyberdiyev_K126": "126", # Афсона
-    1655383135: "174" #Шимолий
+    "JasurKazakov": "109",
+    "@Az1mov_K109": "109",
+    "@Umarov_K109_SV": "109",
+    "@Obidov_7700": "109",
+    "@Vazi_ra8": "109",
+    # Турт куча
+    "VahobjonovAbdulaziz": "054",
+    "@delphi1007": "054", 
+    "@Sherzodbek_Ruziev": "054",
+    "@QALAMPIRMUNCOQ": "054",
+    "@Kholmatov_21": "054",
+    # Навруз
+    "Samijonov_Azizbek": "148",
+    "@NasoyiddinovHusainbek": "148",
+    "@yoldoshev_038": "148",
+    "@Oybek_Ol1mjonov": "148",
+    # Гранд
+    "Kamolov_K164": "164",
+    "@KamolovRustambek": "164",
+    "@Jasurbek9770": "164",
+    "@Akmadjonov_95": "164",
+    "@Akbarov_1806": "164",
+    # Узбеким
+    "Qurbonov_Qodiriy": "191",
+    "@ulugbek_k191": "191",
+    "@Namangan_K191": "191",
+    # Чорток
+    "AbdurashidovDavron": "071",
+    "@Sultonbek_K071": "071",
+    "@Cash2oo2": "071",
+    # Наманган
+    "DilobarParmonova": "023",
+    "@Jalilovak023": "023",
+    "@NurulloK023": "023",
+    # Андижан
+    "Ibrohimjon0526": "177",
+    "@IAlievK177": "177",
+    "@Norkholikova": "177",
+    # Азия
+    "@AbdumutalXudoyberdiyevK126": "126",
+    "@rustamovicho1": "126",
+    "@Nur1ddinov_K126": "126",
+    "@Islombek_D": "126",
+    # Афсона
+    "1655383135": "174", #Шимолий
+    "m_gulamjanov": "174",
+    "@diyorbek1577": "174",
+    "@ALISHER_94_02_09": "174",
+    "@Asad_Axmedov": "174",
 }
 
 # Варианты написания для поиска (все в нижнем регистре)
@@ -1045,6 +1084,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
