@@ -104,54 +104,54 @@ LATE_STORES = ["177", "164", "054"]
 # Список менеджеров (username -> код магазина)
 MANAGERS = {
     "JasurKazakov": "109",
-    "@Az1mov_K109": "109",
-    "@Umarov_K109_SV": "109",
-    "@Obidov_7700": "109",
-    "@Vazi_ra8": "109",
+    "Az1mov_K109": "109",
+    "Umarov_K109_SV": "109",
+    "Obidov_7700": "109",
+    "Vazi_ra8": "109",
     # Турт куча
     "VahobjonovAbdulaziz": "054",
-    "@delphi1007": "054", 
-    "@Sherzodbek_Ruziev": "054",
-    "@QALAMPIRMUNCOQ": "054",
-    "@Kholmatov_21": "054",
+    "delphi1007": "054", 
+    "Sherzodbek_Ruziev": "054",
+    "QALAMPIRMUNCOQ": "054",
+    "Kholmatov_21": "054",
     # Навруз
     "Samijonov_Azizbek": "148",
-    "@NasoyiddinovHusainbek": "148",
-    "@yoldoshev_038": "148",
-    "@Oybek_Ol1mjonov": "148",
+    "NasoyiddinovHusainbek": "148",
+    "yoldoshev_038": "148",
+    "Oybek_Ol1mjonov": "148",
     # Гранд
     "Kamolov_K164": "164",
-    "@KamolovRustambek": "164",
-    "@Jasurbek9770": "164",
-    "@Akmadjonov_95": "164",
-    "@Akbarov_1806": "164",
+    "KamolovRustambek": "164",
+    "Jasurbek9770": "164",
+    "Akmadjonov_95": "164",
+    "Akbarov_1806": "164",
     # Узбеким
     "Qurbonov_Qodiriy": "191",
-    "@ulugbek_k191": "191",
-    "@Namangan_K191": "191",
+    "ulugbek_k191": "191",
+    "Namangan_K191": "191",
     # Чорток
     "AbdurashidovDavron": "071",
-    "@Sultonbek_K071": "071",
-    "@Cash2oo2": "071",
+    "Sultonbek_K071": "071",
+    "Cash2oo2": "071",
     # Наманган
     "DilobarParmonova": "023",
-    "@Jalilovak023": "023",
-    "@NurulloK023": "023",
+    "Jalilovak023": "023",
+    "NurulloK023": "023",
     # Андижан
     "Ibrohimjon0526": "177",
-    "@IAlievK177": "177",
-    "@Norkholikova": "177",
+    "IAlievK177": "177",
+    "Norkholikova": "177",
     # Азия
-    "@AbdumutalXudoyberdiyevK126": "126",
-    "@rustamovicho1": "126",
-    "@Nur1ddinov_K126": "126",
-    "@Islombek_D": "126",
+    "AbdumutalXudoyberdiyevK126": "126",
+    "rustamovicho1": "126",
+    "Nur1ddinov_K126": "126",
+    "Islombek_D": "126",
     # Афсона
     "1655383135": "174", #Шимолий
     "m_gulamjanov": "174",
-    "@diyorbek1577": "174",
-    "@ALISHER_94_02_09": "174",
-    "@Asad_Axmedov": "174",
+    "diyorbek1577": "174",
+    "ALISHER_94_02_09": "174",
+    "Asad_Axmedov": "174",
 }
 
 # Варианты написания для поиска (все в нижнем регистре)
@@ -303,22 +303,25 @@ async def send_actual_report(chat_id):
 # ==========================================================
 
 def get_store_code(user: types.User):
-    # 1. Самый надёжный способ — Telegram ID
-    if user.id in MANAGERS:
-        return MANAGERS[user.id]
 
-    # 2. Потом username (если он есть)
-    if user.username and user.username in MANAGERS:
-        return MANAGERS[user.username]
-
-    # 3. В крайнем случае — 3 цифры в имени
+    # 1️⃣ СНАЧАЛА ищем 3 цифры в имени (как раньше)
     if user.full_name:
         match = re.search(r'\b\d{3}\b', user.full_name)
         if match and match.group(0) in STORES:
             return match.group(0)
 
-    return None
+    # 2️⃣ Потом Telegram ID
+    if user.id in MANAGERS:
+        return MANAGERS[user.id]
 
+    # 3️⃣ Потом username (без @)
+    if user.username:
+        username = user.username.lstrip("@")
+        if username in MANAGERS:
+            return MANAGERS[username]
+
+    return None
+    
 def normalize(text: str) -> str:
     return text.lower().replace("ё", "е").strip()
 
@@ -467,8 +470,14 @@ async def master_handler(message: types.Message):
     # 3. ЛОГИКА ПО ТЕМАМ
     # 3. ОБЫЧНАЯ ЛОГИКА (Теперь проверяет и список менеджеров, и имя профиля)
     if not message.from_user: return 
-    code = get_store_code(message.from_user) # <--- Теперь передаем объект целиком
-    if not code: return
+    code = get_store_code(message.from_user)
+
+    if not code:
+        print("⚠️ Не удалось определить магазин:",
+              message.from_user.id,
+              message.from_user.username,
+              message.from_user.full_name)
+        return
     # --- ОТКРЫТИЕ И ЗАКРЫТИЕ ---
     if tid == TOPICS['Открытие и Закрытие']:
         if content:
@@ -1161,6 +1170,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
