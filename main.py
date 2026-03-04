@@ -282,6 +282,33 @@ def detect_intent(text: str) -> str:
         return "CLOSE"
 
     return "OTHER"
+    
+async def get_store_code_safe(message: types.Message):
+    user = message.from_user
+
+    # --- 1. СТАРАЯ ЛОГИКА ---
+    code = get_store_code(user)
+    if code:
+        return code
+
+    # --- 2. ПЫТАЕМСЯ ВЗЯТЬ BIO ---
+    try:
+        chat_member = await bot.get_chat_member(message.chat.id, user.id)
+        bio = (chat_member.user.bio or "").lower()
+    except Exception as e:
+        print("BIO ERROR:", e)
+        return None
+
+    # --- 3. ИЩЕМ КОД В BIO ---
+    import re
+    match = re.search(r'\b\d{3}\b', bio)
+    if match:
+        found = match.group(0)
+        if found in STORES:
+            print(f"DEBUG | code from bio: {found}")
+            return found
+
+    return None
 
 # ==========================================================
 # 5. ЕДИНЫЙ ОБРАБОТЧИК СООБЩЕНИЙ
@@ -1018,6 +1045,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
