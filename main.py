@@ -396,12 +396,12 @@ async def master_handler(message: types.Message):
             parent = message.reply_to_message
             problem_id = str(parent.media_group_id or parent.message_id)
 
-            cursor.execute("SELECT store_code FROM problems WHERE id = ? AND fixed = 0", (problem_id,))
+            cursor.execute("SELECT store_code FROM problems WHERE id = %s AND fixed = 0", (problem_id,))
             row = cursor.fetchone()
 
             if row:
                 fixed_time = now.strftime("%Y-%m-%d %H:%M:%S")
-                cursor.execute("UPDATE problems SET fixed = 1, fixed_at = ? WHERE id = ?", (fixed_time, problem_id))
+                cursor.execute("UPDATE problems SET fixed = 1, fixed_at = %s WHERE id = %s", (fixed_time, problem_id))
                 conn.commit()
                 store_code = row[0]
                 if store_code in store_kpi:
@@ -443,11 +443,11 @@ async def master_handler(message: types.Message):
 
                 description = (message.caption or "").strip()
 
-                cursor.execute("SELECT 1 FROM problems WHERE id = ?", (problem_id,))
+                cursor.execute("SELECT 1 FROM problems WHERE id = %s", (problem_id,))
                 if cursor.fetchone() is None:
                     cursor.execute("""
                         INSERT INTO problems (id, store_code, created_at, fixed, group_id, description)
-                        VALUES (?, ?, ?, 0, ?, ?)
+                        VALUES (%s, %s, %s, 0, %s, %s)
                     """, (problem_id, selected_store, now.strftime("%Y-%m-%d %H:%M:%S"), group_id, description))
                     conn.commit()
 
@@ -494,7 +494,7 @@ async def master_handler(message: types.Message):
                     store_kpi[code]["late_openings"] += 1
                     cursor.execute("""
                     INSERT INTO late_openings (store_code, date)
-                    VALUES (?, ?)
+                    VALUES (%s, %s)
                     """, (code, now.strftime("%Y-%m-%d")))
                     conn.commit()
                     await message.reply(f"⚠️ {code}: Вы открылись в {now.strftime('%H:%M')} (Дедлайн: {deadline_str}).\n❗️ Напишите причину опоздания в ответном сообщении.")
@@ -1154,6 +1154,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
