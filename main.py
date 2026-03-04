@@ -492,7 +492,7 @@ async def master_handler(message: types.Message):
                 db_times[code]["open"] = now.strftime("%H:%M")
                 
                 # Пользуемся глобальным LATE_STORES
-                deadline_str = "08:30" if code in LATE_STORES else "06:45"
+                deadline_str = "07:31" if code in LATE_STORES else "06:46"
                 deadline_time = datetime.strptime(deadline_str, "%H:%M").time()
 
                 # Проверка на опоздание
@@ -926,20 +926,20 @@ async def job_check_late_stores_0835():
 
     # 2. ХО
     late_xo = [c for c in LATE_STORES if not db[c].get('ХО')]
-    if late_xo: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **ХО (07:30)**: Нет фото от {', '.join(late_xo)}", message_thread_id=TOPICS['ХО'])
+    if late_xo: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **ХО (08:00)**: Нет фото от {', '.join(late_xo)}", message_thread_id=TOPICS['ХО'])
 
     # 3. КЖ
     late_kj = [c for c in LATE_STORES if not db[c].get('Книга Жалоб')]
     if late_kj:
         stores_str = ", ".join(late_kj)
-        await bot.send_message(GROUP_CHAT_ID, f"⚠️ **Книга Жалоб (07:30)**: Нет отчета от {stores_str}", message_thread_id=TOPICS['Книга Жалоб'])
+        await bot.send_message(GROUP_CHAT_ID, f"⚠️ **Книга Жалоб (08:00)**: Нет отчета от {stores_str}", message_thread_id=TOPICS['Книга Жалоб'])
 
     # 4. Алея и Олов
     late_aleya = [c for c in LATE_STORES if not db[c].get('Алея и Промо')]
-    if late_aleya: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **АЛЕЯ (07:30)**: Нет фото от {', '.join(late_aleya)}", message_thread_id=TOPICS['Алея и Промо'])
+    if late_aleya: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **АЛЕЯ (08:00)**: Нет фото от {', '.join(late_aleya)}", message_thread_id=TOPICS['Алея и Промо'])
 
     late_olov = [c for c in LATE_STORES if not db[c].get('Олов Таклиф')]
-    if late_olov: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **Олов Таклиф (07:30)**: Нет фото от {', '.join(late_olov)}", message_thread_id=TOPICS['Олов Таклиф'])
+    if late_olov: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **Олов Таклиф (08:00)**: Нет фото от {', '.join(late_olov)}", message_thread_id=TOPICS['Олов Таклиф'])
 
 async def job_8am_check_kj():
     """Проверка КЖ (только Обычные магазины)"""
@@ -1161,6 +1161,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
