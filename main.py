@@ -7,7 +7,6 @@ import asyncio
 import re
 from datetime import datetime, time, timedelta
 import psycopg2
-# --- БИБЛИОТЕКИ ---
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.types import BotCommand, InlineKeyboardMarkup, InlineKeyboardButton
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -1084,6 +1083,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
