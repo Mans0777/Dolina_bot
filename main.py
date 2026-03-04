@@ -406,7 +406,7 @@ async def master_handler(message: types.Message):
                 store_code = row[0]
                 if store_code in store_kpi:
                     store_kpi[store_code]["fixed_problems"] += 1
-                
+                await message.reply("✅ Исправлено!")
             return
 
         # --- 2️⃣ ВЫБОР МАГАЗИНА И РЕГИСТРАЦИЯ ---
@@ -430,7 +430,7 @@ async def master_handler(message: types.Message):
                 # ❗ ВАЖНО: Если фото НЕТ, выходим. Если фото ЕСТЬ — идем дальше сохранять его!
                 if not (message.photo or message.video):
                     return
-
+                    
             # --- СОХРАНЕНИЕ ПРОБЛЕМЫ ---
             selected_store = admin_selection.get(message.from_user.id)
             if selected_store and (message.photo or message.video):
@@ -443,16 +443,23 @@ async def master_handler(message: types.Message):
 
                 description = (message.caption or "").strip()
 
+                # 1️⃣ Отправляем сообщение и получаем message_id
+                sent_msg = await message.reply(f"❌ Зарегистрировано ({STORES[selected_store]})")
+                registration_message_id = sent_msg.message_id
+
+                # 2️⃣ Вставляем запись в БД уже с registration_message_id
                 cursor.execute("SELECT 1 FROM problems WHERE id = %s", (problem_id,))
                 if cursor.fetchone() is None:
                     cursor.execute("""
-                        INSERT INTO problems (id, store_code, created_at, fixed, group_id, description)
-                        VALUES (%s, %s, %s, 0, %s, %s)
-                    """, (problem_id, selected_store, now.strftime("%Y-%m-%d %H:%M:%S"), group_id, description))
+                        INSERT INTO problems 
+                        (id, store_code, created_at, fixed, group_id, description, registration_message_id)
+                        VALUES (%s, %s, %s, 0, %s, %s, %s)
+                    """, (problem_id, selected_store, now.strftime("%Y-%m-%d %H:%M:%S"), group_id, description, registration_message_id))
                     conn.commit()
 
-                    if selected_store in store_kpi:
-                        store_kpi[selected_store]["total_problems"] += 1
+                # 3️⃣ Обновляем статистику
+                if selected_store in store_kpi:
+                    store_kpi[selected_store]["total_problems"] += 1
 
             elif not selected_store and (message.photo or message.video):
                 await message.reply("⚠️ Сначала напишите название магазина (Шимолий, Азия и т.д.)")
@@ -1154,6 +1161,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
