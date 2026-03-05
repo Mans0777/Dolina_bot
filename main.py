@@ -43,8 +43,6 @@ try:
 except Exception as e:
     print(f"❌ Ошибка подключения к БД: {e}")
 
-conn = psycopg2.connect(DATABASE_URL)
-cursor = conn.cursor()
 # Создаем базовые таблицы
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS problems (
@@ -1215,6 +1213,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
