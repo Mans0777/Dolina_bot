@@ -387,7 +387,7 @@ async def master_handler(message: types.Message):
             return
 
     tid = message.message_thread_id
-    now = datetime.now()
+    now = get_now()
     content = message.text or message.caption 
 
 # 2. СПЕЦИАЛЬНАЯ ЛОГИКА: ТЕМА "ПРОБЛЕМЫ"
@@ -1170,6 +1170,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
