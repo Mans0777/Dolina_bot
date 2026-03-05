@@ -918,37 +918,82 @@ async def job_check_standard_opening():
         stores_str = ", ".join(late)
         await bot.send_message(GROUP_CHAT_ID, f"🚨 **06:50:** {stores_str} не открылись!", message_thread_id=TOPICS['Открытие и Закрытие'])
 
-async def job_check_late_stores_0835():
-    """Единая проверка для 177, 164, 054 ровно в 07:35 (Сразу все утренние задачи)"""
+async def job_check_late_opening():
+    """Проверка открытия 177, 164, 054 в 07:31"""
+
     clean_chat_id = str(GROUP_CHAT_ID).replace("-100", "")
-    
-    # 1. Открытие
+
     late_open = [c for c in LATE_STORES if not db_times[c].get("open")]
+
     if late_open:
         stores_str = ", ".join(late_open)
-        for c in late_open: awaiting_reason[c] = True
-        await bot.send_message(GROUP_CHAT_ID, f"🚨 **07:35:** {stores_str} не открылись!", message_thread_id=TOPICS['Открытие и Закрытие'])
-        kb_open = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="✉️ Написать им", url=f"https://t.me/c/{clean_chat_id}/{TOPICS['Открытие и Закрытие']}")]])
+
+        for c in late_open:
+            awaiting_reason[c] = True
+
+        await bot.send_message(
+            GROUP_CHAT_ID,
+            f"🚨 **07:31:** {stores_str} не открылись!",
+            message_thread_id=TOPICS['Открытие и Закрытие']
+        )
+
+        kb_open = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(
+                    text="✉️ Написать им",
+                    url=f"https://t.me/c/{clean_chat_id}/{TOPICS['Открытие и Закрытие']}"
+                )]
+            ]
+        )
+
         for admin_id in ADMIN_IDS:
-            try: await bot.send_message(admin_id, f"🚨 **ОПОЗДАНИЕ 07:35 (177, 164, 054):**\n📍 {stores_str} не открылись!", reply_markup=kb_open)
-            except: pass
+            try:
+                await bot.send_message(
+                    admin_id,
+                    f"🚨 **ОПОЗДАНИЕ 07:31 (177, 164, 054):**\n📍 {stores_str} не открылись!",
+                    reply_markup=kb_open
+                )
+            except:
+                pass
 
-    # 2. ХО
+async def job_check_late_morning_reports():
+    """Проверка утренних отчетов 177, 164, 054 в 08:35"""
+
+    # ХО
     late_xo = [c for c in LATE_STORES if not db[c].get('ХО')]
-    if late_xo: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **ХО (08:00)**: Нет фото от {', '.join(late_xo)}", message_thread_id=TOPICS['ХО'])
+    if late_xo:
+        await bot.send_message(
+            GROUP_CHAT_ID,
+            f"⚠️ **ХО (08:00)**: Нет фото от {', '.join(late_xo)}",
+            message_thread_id=TOPICS['ХО']
+        )
 
-    # 3. КЖ
+    # КЖ
     late_kj = [c for c in LATE_STORES if not db[c].get('Книга Жалоб')]
     if late_kj:
-        stores_str = ", ".join(late_kj)
-        await bot.send_message(GROUP_CHAT_ID, f"⚠️ **Книга Жалоб (08:00)**: Нет отчета от {stores_str}", message_thread_id=TOPICS['Книга Жалоб'])
+        await bot.send_message(
+            GROUP_CHAT_ID,
+            f"⚠️ **Книга Жалоб (08:00)**: Нет отчета от {', '.join(late_kj)}",
+            message_thread_id=TOPICS['Книга Жалоб']
+        )
 
-    # 4. Алея и Олов
+    # Алея
     late_aleya = [c for c in LATE_STORES if not db[c].get('Алея и Промо')]
-    if late_aleya: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **АЛЕЯ (08:00)**: Нет фото от {', '.join(late_aleya)}", message_thread_id=TOPICS['Алея и Промо'])
+    if late_aleya:
+        await bot.send_message(
+            GROUP_CHAT_ID,
+            f"⚠️ **АЛЕЯ (08:00)**: Нет фото от {', '.join(late_aleya)}",
+            message_thread_id=TOPICS['Алея и Промо']
+        )
 
+    # Олов
     late_olov = [c for c in LATE_STORES if not db[c].get('Олов Таклиф')]
-    if late_olov: await bot.send_message(GROUP_CHAT_ID, f"⚠️ **Олов Таклиф (08:00)**: Нет фото от {', '.join(late_olov)}", message_thread_id=TOPICS['Олов Таклиф'])
+    if late_olov:
+        await bot.send_message(
+            GROUP_CHAT_ID,
+            f"⚠️ **Олов Таклиф (08:00)**: Нет фото от {', '.join(late_olov)}",
+            message_thread_id=TOPICS['Олов Таклиф']
+        )
 
 async def job_8am_check_kj():
     """Проверка КЖ (только Обычные магазины)"""
@@ -1147,8 +1192,8 @@ async def main():
     scheduler.add_job(job_9am_check_aleya_olov, 'cron', hour=9, minute=0)
 
     # 8:35 — Проверка 177, 164, 054 (ВСЕ ЗАДАЧИ СРАЗУ)
-    scheduler.add_job(job_check_late_stores_0835, 'cron', hour=7, minute=35)
-
+    scheduler.add_job(job_check_late_opening, "cron", hour=7, minute=31)
+    scheduler.add_job(job_check_late_morning_reports, "cron", hour=8, minute=35)
     # 8:40 — ОБЩИЙ ОТЧЕТ АДМИНАМ (Когда все данные уже есть)
     scheduler.add_job(job_send_admin_report, 'cron', hour=8, minute=40)
     scheduler.add_job(job_wednesday_2100_cleaning, 'cron', hour=18, minute=0)
@@ -1170,6 +1215,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
