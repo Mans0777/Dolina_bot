@@ -296,23 +296,20 @@ async def send_actual_report(chat_id):
         kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=f"➡️ Перейти в {db_key}", url=f"https://t.me/c/{clean_chat_id}/{TOPICS[db_key]}") ]])
         await bot.send_message(chat_id, msg, reply_markup=kb)
 
+
 # ==========================================================
 # 4. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ==========================================================
 
 def get_store_code(user: types.User):
 
-    # 1️⃣ СНАЧАЛА ищем 3 цифры в имени (как раньше)
+    # 1️⃣ Ищем код в имени
     if user.full_name:
         match = re.search(r'\b\d{3}\b', user.full_name)
         if match and match.group(0) in STORES:
             return match.group(0)
 
-    # 2️⃣ Потом Telegram ID
-    if user.id in MANAGERS:
-        return MANAGERS[user.id]
-
-    # 3️⃣ Потом username (без @)
+    # 2️⃣ Ищем по username
     if user.username:
         username = user.username.lstrip("@")
         if username in MANAGERS:
@@ -336,7 +333,42 @@ def detect_intent(text: str) -> str:
         return "CLOSE"
 
     return "OTHER"
-    
+
+async def detect_store(message: types.Message):
+    user = message.from_user
+
+    # 1️⃣ username
+    if user.username:
+        username = user.username.lstrip("@")
+        if username in MANAGERS:
+            return MANAGERS[username]
+
+    # 2️⃣ имя
+    if user.full_name:
+        match = re.search(r'(\d{3})', user.full_name)
+        if match and match.group(1) in STORES:
+            return match.group(1)
+
+    # 3️⃣ bio
+    try:
+        member = await bot.get_chat_member(message.chat.id, user.id)
+        bio = (member.user.bio or "").lower()
+        match = re.search(r'(\d{3})', bio)
+        if match and match.group(1) in STORES:
+            return match.group(1)
+    except:
+        pass
+
+    # 4️⃣ текст сообщения
+    text = (message.text or message.caption or "").lower()
+
+    for code, variants in STORE_VARIANTS.items():
+        for variant in variants:
+            if variant in text:
+                return code
+
+    return None
+
 async def get_store_code_safe(message: types.Message):
     user = message.from_user
 
@@ -468,7 +500,7 @@ async def master_handler(message: types.Message):
     # 3. ЛОГИКА ПО ТЕМАМ
     # 3. ОБЫЧНАЯ ЛОГИКА (Теперь проверяет и список менеджеров, и имя профиля)
     if not message.from_user: return 
-    code = get_store_code(message.from_user)
+    code = await detect_store(message)
 
     if not code:
         print("⚠️ Не удалось определить магазин:",
@@ -1213,6 +1245,7 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit):
 
         pass
+
 
 
 
