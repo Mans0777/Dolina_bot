@@ -141,7 +141,7 @@ MANAGERS = {
     "Norkholikova": "177",
     # Азия
     "AbdumutalXudoyberdiyevK126": "126",
-    "rustamovicho1": "126",
+    "rustamovicho1": "071",
     "Nur1ddinov_K126": "126",
     "Islombek_D": "126",
     # Афсона
