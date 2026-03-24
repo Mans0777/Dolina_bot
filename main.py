@@ -531,7 +531,7 @@ async def master_handler(message: types.Message):
                 db_times[code]["open"] = now.strftime("%H:%M")
                 
                 # Пользуемся глобальным LATE_STORES
-                deadline_str = "07:31" if code in LATE_STORES else "06:46"
+                deadline_str = "07:35" if code in LATE_STORES else "06:46"
                 deadline_time = datetime.strptime(deadline_str, "%H:%M").time()
 
                 # Проверка на опоздание
@@ -956,7 +956,7 @@ async def job_check_standard_opening():
         await bot.send_message(GROUP_CHAT_ID, f"🚨 **06:50:** {stores_str} не открылись!", message_thread_id=TOPICS['Открытие и Закрытие'])
 
 async def job_check_late_opening():
-    """Проверка открытия 177, 164, 054 в 07:31"""
+    """Проверка открытия 177, 164, 054 в 07:35"""
 
     clean_chat_id = str(GROUP_CHAT_ID).replace("-100", "")
 
@@ -970,7 +970,7 @@ async def job_check_late_opening():
 
         await bot.send_message(
             GROUP_CHAT_ID,
-            f"🚨 **07:31:** {stores_str} не открылись!",
+            f"🚨 **07:35:** {stores_str} не открылись!",
             message_thread_id=TOPICS['Открытие и Закрытие']
         )
 
@@ -987,7 +987,7 @@ async def job_check_late_opening():
             try:
                 await bot.send_message(
                     admin_id,
-                    f"🚨 **ОПОЗДАНИЕ 07:31 (177, 164, 054):**\n📍 {stores_str} не открылись!",
+                    f"🚨 **ОПОЗДАНИЕ 07:35 (177, 164, 054):**\n📍 {stores_str} не открылись!",
                     reply_markup=kb_open
                 )
             except:
