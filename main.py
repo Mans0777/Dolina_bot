@@ -745,7 +745,12 @@ async def send_daily_rating(chat_id):
 async def send_problems_report(chat_id, only_yesterday=False):
     """Детальный отчет по замечаниям с группировкой альбомов (LIVE и вчера)"""
 
-    yesterday_str = (get_now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    now = get_now()
+    yesterday_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+    
+    # 🔥 Добавляем вычисление начала текущей недели (понедельник 00:00:00)
+    start_of_week = (now - timedelta(days=now.weekday())).strftime("%Y-%m-%d 00:00:00")
+    
     store_issues = {code: [] for code in STORES}
     processed_groups = set()
 
@@ -757,10 +762,12 @@ async def send_problems_report(chat_id, only_yesterday=False):
             WHERE date(created_at) = %s
         """, (yesterday_str,))
     else:
+        # 🔥 Теперь берем проблемы только с начала этой недели
         cursor.execute("""
             SELECT id, store_code, created_at, fixed, group_id, description, registration_message_id
             FROM problems
-        """)
+            WHERE created_at >= %s
+        """, (start_of_week,))
 
     rows = cursor.fetchall()
 
