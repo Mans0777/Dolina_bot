@@ -141,7 +141,7 @@ MANAGERS = {
     "Norkholikova": "177",
     # Азия
     "AbdumutalXudoyberdiyevK126": "126",
-    "rustamovicho1": "071",
+    "rustamovicho1": "126",
     "Nur1ddinov_K126": "126",
     "Islombek_D": "126",
     # Афсона
@@ -531,7 +531,7 @@ async def master_handler(message: types.Message):
                 db_times[code]["open"] = now.strftime("%H:%M")
                 
                 # Пользуемся глобальным LATE_STORES
-                deadline_str = "07:35" if code in LATE_STORES else "06:46"
+                deadline_str = "07:41" if code in LATE_STORES else "06:46"
                 deadline_time = datetime.strptime(deadline_str, "%H:%M").time()
 
                 # Проверка на опоздание
@@ -956,7 +956,7 @@ async def job_check_standard_opening():
         await bot.send_message(GROUP_CHAT_ID, f"🚨 **06:50:** {stores_str} не открылись!", message_thread_id=TOPICS['Открытие и Закрытие'])
 
 async def job_check_late_opening():
-    """Проверка открытия 177, 164, 054 в 07:35"""
+    """Проверка открытия 177, 164, 054 в 07:41"""
 
     clean_chat_id = str(GROUP_CHAT_ID).replace("-100", "")
 
@@ -970,7 +970,7 @@ async def job_check_late_opening():
 
         await bot.send_message(
             GROUP_CHAT_ID,
-            f"🚨 **07:35:** {stores_str} не открылись!",
+            f"🚨 **07:41:** {stores_str} не открылись!",
             message_thread_id=TOPICS['Открытие и Закрытие']
         )
 
@@ -987,21 +987,21 @@ async def job_check_late_opening():
             try:
                 await bot.send_message(
                     admin_id,
-                    f"🚨 **ОПОЗДАНИЕ 07:35 (177, 164, 054):**\n📍 {stores_str} не открылись!",
+                    f"🚨 **ОПОЗДАНИЕ 07:41 (177, 164, 054):**\n📍 {stores_str} не открылись!",
                     reply_markup=kb_open
                 )
             except:
                 pass
 
 async def job_check_late_morning_reports():
-    """Проверка утренних отчетов 177, 164, 054 в 08:35"""
+    """Проверка утренних отчетов 177, 164, 054 в 09:00"""
 
     # ХО
     late_xo = [c for c in LATE_STORES if not db[c].get('ХО')]
     if late_xo:
         await bot.send_message(
             GROUP_CHAT_ID,
-            f"⚠️ **ХО (08:00)**: Нет фото от {', '.join(late_xo)}",
+            f"⚠️ **ХО (09:00)**: Нет фото от {', '.join(late_xo)}",
             message_thread_id=TOPICS['ХО']
         )
 
@@ -1010,7 +1010,7 @@ async def job_check_late_morning_reports():
     if late_kj:
         await bot.send_message(
             GROUP_CHAT_ID,
-            f"⚠️ **Книга Жалоб (08:00)**: Нет отчета от {', '.join(late_kj)}",
+            f"⚠️ **Книга Жалоб (09:00)**: Нет отчета от {', '.join(late_kj)}",
             message_thread_id=TOPICS['Книга Жалоб']
         )
 
@@ -1019,7 +1019,7 @@ async def job_check_late_morning_reports():
     if late_aleya:
         await bot.send_message(
             GROUP_CHAT_ID,
-            f"⚠️ **АЛЕЯ (08:00)**: Нет фото от {', '.join(late_aleya)}",
+            f"⚠️ **АЛЕЯ (09:00)**: Нет фото от {', '.join(late_aleya)}",
             message_thread_id=TOPICS['Алея и Промо']
         )
 
@@ -1028,7 +1028,7 @@ async def job_check_late_morning_reports():
     if late_olov:
         await bot.send_message(
             GROUP_CHAT_ID,
-            f"⚠️ **Олов Таклиф (08:00)**: Нет фото от {', '.join(late_olov)}",
+            f"⚠️ **Олов Таклиф (09:00)**: Нет фото от {', '.join(late_olov)}",
             message_thread_id=TOPICS['Олов Таклиф']
         )
 
@@ -1228,9 +1228,9 @@ async def main():
     scheduler.add_job(job_8am_check_kj, 'cron', hour=8, minute=10)
     scheduler.add_job(job_9am_check_aleya_olov, 'cron', hour=9, minute=0)
 
-    # 8:35 — Проверка 177, 164, 054 (ВСЕ ЗАДАЧИ СРАЗУ)
-    scheduler.add_job(job_check_late_opening, "cron", hour=7, minute=31)
-    scheduler.add_job(job_check_late_morning_reports, "cron", hour=8, minute=35)
+    # 9:00 — Проверка 177, 164, 054 (ВСЕ ЗАДАЧИ СРАЗУ)
+    scheduler.add_job(job_check_late_opening, "cron", hour=7, minute=41)
+    scheduler.add_job(job_check_late_morning_reports, "cron", hour=9, minute=0)
     # 8:40 — ОБЩИЙ ОТЧЕТ АДМИНАМ (Когда все данные уже есть)
     scheduler.add_job(job_send_admin_report, 'cron', hour=8, minute=40)
     scheduler.add_job(job_wednesday_2100_cleaning, 'cron', hour=18, minute=0)
@@ -1239,7 +1239,7 @@ async def main():
     # Проверка Лого (Вечер) в 21:00
     scheduler.add_job(job_check_logo_2100, 'cron', hour=21, minute=0)
     # Отчет по проблемам за вчера в 09:00
-    scheduler.add_job(job_daily_problems_report, 'cron', hour=9, minute=0)
+    scheduler.add_job(job_daily_problems_report, 'cron', hour=9, minute=30)
     # Проверка ХО (Ночь) ровно в полночь за период 21-00
     scheduler.add_job(job_check_night_xo, 'cron', hour=0, minute=5)
     scheduler.start()
