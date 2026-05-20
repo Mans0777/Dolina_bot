@@ -116,7 +116,14 @@ MANAGERS = {
     "Obidov_7700": "109",
     "Vazi_ra8": "109",
     # Турт куча
+    "Ihtiyor_1997": "035",
+    "UsmanaliyevnaS": "035",
+    "K035korzinkaAsaka": "035",
+    "asaka_K035": "035",
+    # Асака
     "AbdumutalXudoyberdiyevK167": "167",
+    "Islombek_K167": "167",
+    "Nuriddinov_K126": "167",
     # Дустлик
     "VahobjonovAbdulaziz": "054",
     "delphi1007": "054", 
@@ -175,8 +182,8 @@ STORE_VARIANTS = {
     "191": ["чорток", "Чорток", "chortoq"],
     "164": ["узбегим", "Узбегим", "uzbegim", "o'zbegim", "ozbegim"],
     "109": ["турт куча", "торт куча", "Турт куча", "Торт куча", "4 куча", "turt kucha"],
-    "167": ["Дустлик", "дустлик", "Достлик", "достлик", "dustlik", "Dustlik", "Do'stlik", "do'stlik", "dostlik", "Dostlik"],
-    "035": ["Асака", "асака", "Asaka", "asaka"]
+    "167": ["Дустлик", "дустлик", "Достлик", "достлик", "dustlik", "Dustlik", "Do'stlik", "do'stlik", "dostlik", "Dostlik", "k167", "к167"],
+    "035": ["Асака", "асака", "Asaka", "asaka", "k035", "к035"]
 }
 
 # Список тем (Topics) — ОБЯЗАТЕЛЬНО ВПИШИТЕ ID ВАШЕЙ ТЕМЫ ВМЕСТО 000000
@@ -315,12 +322,11 @@ async def send_actual_report(chat_id):
 # ==========================================================
 
 def get_store_code(user: types.User):
-
-    # 1️⃣ Ищем код в имени
+    # 1️⃣ Ищем код в имени (учитываем K)
     if user.full_name:
-        match = re.search(r'\b\d{3}\b', user.full_name)
-        if match and match.group(0) in STORES:
-            return match.group(0)
+        match = re.search(r'[KkКк]?(\d{3})', user.full_name) # Изменено здесь
+        if match and match.group(1) in STORES:
+            return match.group(1)
 
     # 2️⃣ Ищем по username
     if user.username:
@@ -332,7 +338,6 @@ def get_store_code(user: types.User):
     
 def normalize(text: str) -> str:
     return text.lower().replace("ё", "е").strip()
-
 
 def detect_intent(text: str) -> str:
     t = normalize(text)
@@ -356,17 +361,17 @@ async def detect_store(message: types.Message):
         if username in MANAGERS:
             return MANAGERS[username]
 
-    # 2️⃣ имя
+    # 2️⃣ имя в detect_store
     if user.full_name:
-        match = re.search(r'(\d{3})', user.full_name)
+        match = re.search(r'[KkКк]?(\d{3})', user.full_name) # Изменено здесь
         if match and match.group(1) in STORES:
             return match.group(1)
 
-    # 3️⃣ bio
+    # 3️⃣ bio в detect_store
     try:
         member = await bot.get_chat_member(message.chat.id, user.id)
         bio = (member.user.bio or "").lower()
-        match = re.search(r'(\d{3})', bio)
+        match = re.search(r'[KkКк]?(\d{3})', bio) # Изменено здесь
         if match and match.group(1) in STORES:
             return match.group(1)
     except:
