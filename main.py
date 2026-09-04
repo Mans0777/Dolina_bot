@@ -5,6 +5,7 @@ import pytz
 import os
 import asyncio
 import re
+import pickle
 from datetime import datetime, time, timedelta
 import psycopg2
 from aiogram import Bot, Dispatcher, F, types
@@ -82,6 +83,16 @@ CREATE TABLE IF NOT EXISTS late_openings (
     date TEXT
 )
 """)
+
+# --- ДОБАВИТЬ ВОТ ЭТОТ БЛОК ---
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS bot_state (
+    id INTEGER PRIMARY KEY,
+    data BYTEA
+)
+""")
+conn.commit()
+# -------------------------------
 
 # --- Безопасно добавляем новые колонки ---
 def add_column_if_not_exists(column_name, column_type):
@@ -161,7 +172,7 @@ MANAGERS = {
     "KamolovRustambek": "035",
     "Jasurbek9770": "164",
     "Akmadjonov_95": "164",
-    "Akbarov_1806": "164",
+    "Akbarov_1806": "054",
     # Узбеким
     "Qurbonov_Qodiriy": "191",
     "ulugbek_k191": "191",
@@ -277,9 +288,12 @@ async def send_actual_report(chat_id):
     # 1. ОТКРЫТИЕ И ЗАКРЫТИЕ (Дизайн изменен на буллиты)
     report_open_close = f"🔑 **ОТКРЫТИЕ И ЗАКРЫТИЕ ({now.strftime('%d.%m %H:%M')})**\n"
     for c in STORES:
-        op_time = db_times[c].get("open") or "❌"
-        cl_time = db_times[c].get("close") or "❌"
-        report_open_close += f"• {c}: {cl_time} | {op_time}\n"
+        if c == "109":
+            report_open_close += f"• {c}: 24/7\n"
+        else:
+            op_time = db_times[c].get("open") or "❌"
+            cl_time = db_times[c].get("close") or "❌"
+            report_open_close += f"• {c}: {cl_time} | {op_time}\n"
         
     kb_oc = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="➡️ Перейти в Открытие/Закрытие", url=f"https://t.me/c/{clean_chat_id}/{TOPICS['Открытие и Закрытие']}") ]])
     await bot.send_message(chat_id, report_open_close, reply_markup=kb_oc)
@@ -341,6 +355,48 @@ async def send_actual_report(chat_id):
 # ==========================================================
 # 4. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ==========================================================
+
+def save_state():
+    """Сохраняет текущие словари из памяти в PostgreSQL"""
+    ensure_db()
+    state = {
+        "db": db,
+        "db_times": db_times,
+        "store_kpi": store_kpi,
+        "awaiting_reason": awaiting_reason,
+        "admin_selection": admin_selection
+    }
+    # Упаковываем данные
+    pickled_data = pickle.dumps(state)
+    try:
+        cursor.execute(
+            "INSERT INTO bot_state (id, data) VALUES (1, %s) "
+            "ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data",
+            (psycopg2.Binary(pickled_data),)
+        )
+        conn.commit()
+    except Exception as e:
+        print(f"❌ Ошибка при сохранении состояния: {e}")
+        conn.rollback()
+
+def load_state():
+    """Загружает словари из PostgreSQL при старте бота"""
+    global db, db_times, store_kpi, awaiting_reason, admin_selection
+    ensure_db()
+    cursor.execute("SELECT data FROM bot_state WHERE id = 1")
+    row = cursor.fetchone()
+    if row:
+        try:
+            state = pickle.loads(row[0])
+            # Обновляем глобальные переменные загруженными данными
+            db.update(state.get("db", {}))
+            db_times.update(state.get("db_times", {}))
+            store_kpi.update(state.get("store_kpi", {}))
+            awaiting_reason.update(state.get("awaiting_reason", {}))
+            admin_selection.update(state.get("admin_selection", {}))
+            print("✅ Состояние успешно восстановлено из БД. Отчеты не потеряны!")
+        except Exception as e:
+            print(f"❌ Ошибка загрузки состояния: {e}")
 
 def get_store_code(user: types.User):
     # 1️⃣ Ищем код в имени (учитываем K)
@@ -568,6 +624,10 @@ async def master_handler(message: types.Message):
             
             # Внутри master_handler, где OPEN
             if intent == "OPEN":
+                if code == "109":
+                    await message.reply("✅ Магазин К109 работает 24/7. Фиксация времени не требуется.")
+                    return
+                
                 db_times[code]["open"] = now.strftime("%H:%M")
                 
                 # Пользуемся глобальным LATE_STORES
@@ -590,6 +650,9 @@ async def master_handler(message: types.Message):
                             await bot.send_message(admin_id, f"🚨 **ОПОЗДАНИЕ {code}:**\nМагазин открылся в {now.strftime('%H:%M')} (Поздно!)")
                         except: pass
             elif intent == "CLOSE":
+                if code == "109":
+                    await message.reply("✅ Магазин К109 работает 24/7. Фиксация времени не требуется.")
+                    return
                 db_times[code]["close"] = now.strftime("%H:%M")
 
 # --- КНИГА ЖАЛОБ (ОБНОВЛЕНО) ---
@@ -648,18 +711,29 @@ async def master_handler(message: types.Message):
                 break
 
 async def export_weekly_excel():
-    ensure_db()
-    wb = Workbook()
+    ensure_db() #[cite: 2]
+    
+    # 1. Получаем текущее время и вычисляем начало текущего месяца
+    now = get_now() #[cite: 2]
+    start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    # 2. Форматируем даты для SQL-запроса
+    start_str = start_of_month.strftime("%Y-%m-%d %H:%M:%S")
+    end_str = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    wb = Workbook() #[cite: 2]
     ws = wb.active
-    ws.title = "Weekly KPI"
+    ws.title = "Monthly KPI"  # Изменили заголовок листа, чтобы отражать суть
 
     ws.append(["Store", "Total Problems", "Fixed", "Percent"])
 
+    # 3. Добавляем фильтр WHERE для выборки только за этот месяц
     cursor.execute("""
     SELECT store_code, COUNT(*), SUM(fixed)
     FROM problems
+    WHERE created_at >= %s AND created_at <= %s
     GROUP BY store_code
-    """)
+    """, (start_str, end_str))
 
     rows = cursor.fetchall()
 
@@ -669,12 +743,13 @@ async def export_weekly_excel():
         fixed = row[2] or 0
         percent = round((fixed / total) * 100) if total else 0
 
-        ws.append([STORES[code], total, fixed, percent])
+        ws.append([STORES[code], total, fixed, percent]) #[cite: 2]
 
-    file_name = "weekly_kpi.xlsx"
+    # Название файла также можно изменить, чтобы оно не сбивало с толку (например, "monthly_kpi.xlsx")
+    file_name = "monthly_kpi.xlsx" 
     wb.save(file_name)
 
-    await bot.send_document(GROUP_CHAT_ID, types.FSInputFile(file_name))
+    await bot.send_document(GROUP_CHAT_ID, types.FSInputFile(file_name)) #[cite: 2]
                 
 async def send_weekly_rating():
     ensure_db()
@@ -996,7 +1071,8 @@ async def job_9am_check_aleya_olov():
 
 async def job_check_standard_opening():
     """Проверка открытия 06:50"""
-    late = [c for c in STORES if c not in LATE_STORES and not db_times[c].get("open")]
+    # Исключаем К109 из проверки, так как он работает 24/7
+    late = [c for c in STORES if c not in LATE_STORES and c != "109" and not db_times[c].get("open")]
     if late:
         stores_str = ", ".join(late)
         await bot.send_message(GROUP_CHAT_ID, f"🚨 **06:50:** {stores_str} не открылись!", message_thread_id=TOPICS['Открытие и Закрытие'])
@@ -1255,6 +1331,7 @@ cursor.execute("SELECT * FROM problems")
 print(cursor.fetchall())
 
 async def main():
+    load_state() # <--- 1. ДОБАВИТЬ СЮДА: Восстанавливаем данные перед стартом
     await bot.set_my_commands([
     BotCommand(command="report", description="Полный отчет"),
     BotCommand(command="problems", description="Текущие проблемы"),
@@ -1289,6 +1366,8 @@ async def main():
     scheduler.add_job(job_daily_problems_report, 'cron', hour=9, minute=30)
     # Проверка ХО (Ночь) ровно в полночь за период 21-00
     scheduler.add_job(job_check_night_xo, 'cron', hour=0, minute=5)
+    scheduler.add_job(save_state, 'interval', minutes=1)
+	
     scheduler.start()
     print("🚀 БОТ ЗАПУЩЕН! (Режим: Разные дедлайны + Отчет в 8:00)")
     await dp.start_polling(bot)
