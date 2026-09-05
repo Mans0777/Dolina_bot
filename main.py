@@ -160,7 +160,7 @@ MANAGERS = {
     "VahobjonovAbdulaziz": "054",
     "delphi1007": "054", 
     "Sherzodbek_Ruziev": "054",
-    "QALAMPIRMUNCOQ": "054",
+    "QALAMPIRMUNCOQ": "164",
     "Kholmatov_21": "054",
     # Навруз
     "Samijonov_Azizbek": "148",
