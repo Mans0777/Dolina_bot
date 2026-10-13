@@ -168,7 +168,6 @@ MANAGERS = {
     "yoldoshev_038": "148",
     "Oybek_Ol1mjonov": "148",
     # Гранд
-    "Kamolov_K164": "164",
     "KamolovRustambek": "035",
     "Jasurbek9770": "164",
     "Akmadjonov_95": "164",
@@ -179,11 +178,13 @@ MANAGERS = {
     "Namangan_K191": "191",
     # Чорток
     "AbdurashidovDavron": "071",
+	"ol1mjonov_d": "071",
     "Sultonbek_K071": "071",
     "Cash2oo2": "071",
     # Наманган
-    "DilobarParmonova": "023",
+    "DilobarParmonova": "164",
     "Jalilovak023": "023",
+	"Mominov_Ikromjon": "164",
     "NurulloK023": "023",
     # Андижан
     "Ibrohimjon0526": "177",
@@ -193,13 +194,14 @@ MANAGERS = {
     "AbdumutalXudoyberdiyevK126": "126",
     "rustamovicho1": "126",
     "Nur1ddinov_K126": "126",
+	"AsilbekK126": "126",
     "Islombek_D": "126",
     # Афсона
     "1655383135": "174", #Шимолий
     "m_gulamjanov": "109",
     "diyorbek1577": "174",
-    "ALISHER_94_02_09": "174",
-    "Asad_Axmedov": "164",
+    "ALISHER_94_02_09": "023",
+    "Asad_Axmedov": "023",
 }
 
 # Варианты написания для поиска (все в нижнем регистре)
@@ -210,7 +212,7 @@ STORE_VARIANTS = {
     "054": ["навруз", "Навруз", "navruz"],
     "126": ["афсона", "Афсона", "afsona"],
     "148": ["гранд", "Гранд", "grand"],
-    "177": ["азия", "Азия", "asia", "azia"],
+    "177": ["азия", "Азия", "asia", "azia", "azia.uz"],
     "191": ["чорток", "Чорток", "chortoq"],
     "164": ["узбегим", "Узбегим", "uzbegim", "o'zbegim", "ozbegim"],
     "109": ["турт куча", "торт куча", "Турт куча", "Торт куча", "4 куча", "turt kucha"],
