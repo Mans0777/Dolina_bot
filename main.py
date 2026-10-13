@@ -142,66 +142,66 @@ LATE_STORES = ["177", "164", "054"]
 
 # Список менеджеров (username -> код магазина)
 MANAGERS = {
-    "JasurKazakov": "109",
-    "Az1mov_K109": "109",
-    "Umarov_K109_SV": "174",
-    "Obidov_7700": "109",
-    "Vazi_ra8": "109",
-    # Турт куча
-    "Ihtiyor_1997": "035",
-    "UsmanaliyevnaS": "035",
-    "K035korzinkaAsaka": "035",
-    "asaka_K035": "035",
-    # Асака
-    "AbdumutalXudoyberdiyevK167": "167",
-    "Islombek_K167": "167",
-    "Nuriddinov_K126": "167",
-    # Дустлик
-    "VahobjonovAbdulaziz": "054",
-    "delphi1007": "054", 
-    "Sherzodbek_Ruziev": "054",
-    "QALAMPIRMUNCOQ": "164",
-    "Kholmatov_21": "054",
-    # Навруз
-    "Samijonov_Azizbek": "148",
-    "NasoyiddinovHusainbek": "148",
-    "yoldoshev_038": "148",
-    "Oybek_Ol1mjonov": "148",
-    # Гранд
-    "KamolovRustambek": "035",
-    "Jasurbek9770": "164",
-    "Akmadjonov_95": "164",
-    "Akbarov_1806": "054",
-    # Узбеким
-    "Qurbonov_Qodiriy": "191",
-    "ulugbek_k191": "191",
-    "Namangan_K191": "191",
-    # Чорток
-    "AbdurashidovDavron": "071",
-	"ol1mjonov_d": "071",
-    "Sultonbek_K071": "071",
-    "Cash2oo2": "071",
-    # Наманган
-    "DilobarParmonova": "164",
-    "Jalilovak023": "023",
+    "Mans0777": "174", 
+	"Umarov_K174_SV": "174",
+	"Bakhodir0294": "174",
+	
+	"Asad_Axmedov": "023",
+	"ALISHER_94_02_09": "023",
+	"QALAMPIRMUNCOQ": "023",
+	"Mavlonbek9717": "023",
+
+	"KamolovRustambek": "035",
+	"KomilovI_K035_SV": "035",
+	"UsmanaliyevnaS": "035",
+	"SobirovO_K035_ST": "035",
+	
+	"DilobarParmonova": "054",
+	"Akbarov_1806": "054",
+	"MadinaK054": "054",
+	"Muxammadamin": "054",
+	
+	"JasurKazakov": "109",
+	"Obidov_7700": "109",
+	"Ergawev2202": "109",
+	"m_gulamjanov": "109",
+	"khad1rof_6": "109",
+	
+	"Vahobjonov_Abdulaziz": "164",
+	"Akhmadjonov_95": "164",
 	"Mominov_Ikromjon": "164",
-    "NurulloK023": "023",
-    # Андижан
-    "Ibrohimjon0526": "177",
-    "IAlievK177": "177",
-    "Norkholikova": "177",
-    # Азия
-    "AbdumutalXudoyberdiyevK126": "126",
-    "rustamovicho1": "126",
-    "Nur1ddinov_K126": "126",
+	"Abduhalimovs1": "164",
+	
+	"IAlievK177": "177",
+	"RahmatilloK177": "177",
+	"Norkholikova": "177",
+	"gulamjanov177": "177",
+	"NurulloK177": "177",
+	
+	"AbdurashidovDavron": "071",
+	"ol1mjonov_d": "071",
+	"Cash2oo2": "071",
+	"Jamoldinov_Abdulatif": "071",
+	
+	"rustamovicho1": "126",
+	"Sultonbek_K126": "126",
 	"AsilbekK126": "126",
-    "Islombek_D": "126",
-    # Афсона
-    "1655383135": "174", #Шимолий
-    "m_gulamjanov": "109",
-    "diyorbek1577": "174",
-    "ALISHER_94_02_09": "023",
-    "Asad_Axmedov": "023",
+	"Abdujalil_K126": "126",
+	
+	"Samijonov_Azizbek": "148",
+	"Diyorbek_K148": "148",
+	"NasoyiddinovHusainbek": "148",
+	"yigitaliyev_K148": "148",
+	
+	"AbdumutalXudoyberdiyevK167": "167",
+	"Nur1ddinov_K167": "167",
+	"Zubayra_Ortiqova": "167",
+	"US_K167": "167",
+	
+	"Qurbonov_Qodiriy": "191",
+	"Abdurahimova_Nozima": "191",
+	"Namangan_K191": "191",
+	"Umidjon5121": "191",
 }
 
 # Варианты написания для поиска (все в нижнем регистре)
@@ -215,7 +215,7 @@ STORE_VARIANTS = {
     "177": ["азия", "Азия", "asia", "azia", "azia.uz"],
     "191": ["чорток", "Чорток", "chortoq"],
     "164": ["узбегим", "Узбегим", "uzbegim", "o'zbegim", "ozbegim"],
-    "109": ["турт куча", "торт куча", "Турт куча", "Торт куча", "4 куча", "turt kucha"],
+    "109": ["турт куча", "торт куча", "Турт куча", "Торт куча", "4 куча", "turt kucha", "to'rt ko'cha"],
     "167": ["Дустлик", "дустлик", "Достлик", "достлик", "dustlik", "Dustlik", "Do'stlik", "do'stlik", "dostlik", "Dostlik", "k167", "к167"],
     "035": ["Асака", "асака", "Asaka", "asaka", "k035", "к035"]
 }
